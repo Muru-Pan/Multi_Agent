@@ -15,41 +15,32 @@ Backend-only agentic AI system that accepts a complex task, breaks it into steps
 ## Architecture Diagram
 
 ```mermaid
-flowchart LR
+flowchart TD
     U["User / Client"]
-    API["FastAPI API Layer<br/>POST /task<br/>GET /task/{task_id}/status<br/>GET /task/{task_id}/stream"]
-    ORCH["Task Orchestrator<br/>Planning + DAG Batching + Retry Logic"]
+    API["FastAPI API Layer"]
+    ORCH["Orchestrator<br/>plan + batch + retry"]
     PLAN["Planner Agent"]
-    TS1["Redis Stream<br/>task_stream:retriever"]
-    TS2["Redis Stream<br/>task_stream:writer"]
-    RET["Retriever Worker"]
-    WR["Writer Worker"]
-    RS["Redis Stream<br/>result_stream"]
-    ES["Redis Stream<br/>event_stream:{task_id}"]
-    ROUTER["LLM Router<br/>Groq -> Gemini -> Together"]
-    WEB["DuckDuckGo Search + Page Fetch"]
-    SSE["SSE Response Stream"]
-    STATUS["Redis Task State<br/>task:{task_id} + step states"]
+    Q1["Redis Task Streams"]
+    RET["Retriever Worker<br/>search + fetch"]
+    Q2["Redis Result Stream"]
+    WR["Writer Worker<br/>synthesize + stream"]
+    EVT["Redis Event Stream"]
+    OUT["SSE + Status API"]
 
-    U -->|Submit task| API
+    U -->|"submit task"| API
     API --> ORCH
     ORCH --> PLAN
-    PLAN --> ROUTER
-    ORCH --> TS1
-    ORCH --> TS2
-    TS1 --> RET
-    RET --> WEB
-    RET --> RS
-    TS2 --> WR
-    WR --> ROUTER
-    WR --> ES
-    RS --> ORCH
-    ORCH --> ES
-    ORCH --> STATUS
-    API --> STATUS
-    ES --> API
-    API --> SSE
-    SSE --> U
+    PLAN --> ORCH
+    ORCH -->|"dispatch step jobs"| Q1
+    Q1 --> RET
+    RET -->|"step results"| Q2
+    Q2 --> ORCH
+    ORCH -->|"dispatch final write step"| Q1
+    Q1 --> WR
+    WR -->|"tokens + final result"| EVT
+    ORCH -->|"step events + task state"| EVT
+    EVT --> OUT
+    OUT --> U
 ```
 
 ## How It Works
