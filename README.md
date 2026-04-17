@@ -15,31 +15,47 @@ Backend-only agentic AI system that accepts a complex task, breaks it into steps
 ## Architecture Diagram
 
 ```mermaid
+%%{init: {'theme': 'dark', 'flowchart': {'curve': 'linear', 'nodeSpacing': 40, 'rankSpacing': 55}}}%%
 flowchart TD
-    U["User"]
-    API["API"]
-    ORCH["Orchestrator"]
-    REDIS["Redis Streams"]
-    PLAN["Planner"]
-    RET["Retriever"]
-    WR["Writer"]
-    OUT["SSE / Status"]
+    subgraph L1[" "]
+        U1["User"]
+    end
 
-    U --> API
+    subgraph L2["API Layer"]
+        API["FastAPI"]
+    end
+
+    subgraph L3["Core"]
+        ORCH["Planner + DAG Execution + Retry Logic"]
+    end
+
+    subgraph L4["Messaging"]
+        REDIS["Redis<br/>Queue + Events + State"]
+    end
+
+    subgraph L5["Workers"]
+        direction LR
+        RET["Retriever Worker<br/>search + fetch"]
+        WR["Writer Worker<br/>synthesize + stream"]
+    end
+
+    subgraph L6["Response"]
+        RESP["SSE Stream + Status API"]
+    end
+
+    subgraph L7[" "]
+        U2["User"]
+    end
+
+    U1 --> API
     API --> ORCH
     ORCH --> REDIS
-    REDIS --> PLAN
-    PLAN --> REDIS
-    REDIS --> ORCH
-    ORCH --> REDIS
     REDIS --> RET
-    RET --> REDIS
-    REDIS --> ORCH
-    ORCH --> REDIS
     REDIS --> WR
+    RET --> REDIS
     WR --> REDIS
-    REDIS --> OUT
-    OUT --> U
+    REDIS --> RESP
+    RESP --> U2
 ```
 
 ## How It Works
