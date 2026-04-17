@@ -15,6 +15,7 @@ Backend-only agentic AI system that accepts a complex task, breaks it into steps
 ## Architecture Diagram
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TD
     U["User"]
     API["API"]
