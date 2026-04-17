@@ -1,0 +1,11 @@
+beautifulsoup4==4.13.4
+duckduckgo-search==8.1.1
+fastapi==0.116.1
+httpx==0.28.1
+pydantic==2.11.7
+pydantic-settings==2.10.1
+redis==6.4.0
+sse-starlette==2.4.1
+uvicorn==0.35.0
+pytest==8.4.1
+pytest-asyncio==1.1.0
