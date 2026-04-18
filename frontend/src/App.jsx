@@ -18,6 +18,16 @@ function formatEventLabel(name) {
   return name.replaceAll("_", " ");
 }
 
+function cleanPreview(text) {
+  if (!text) return "";
+  return text
+    .replace(/#{1,6}\s?/g, "")
+    .replace(/[*_]{1,2}/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function summarizeEvent(type, payload) {
   switch (type) {
     case "plan_ready":
@@ -33,7 +43,7 @@ function summarizeEvent(type, payload) {
     case "step_done":
       return {
         title: `${payload.agent} finished`,
-        detail: payload.result_preview || `${payload.step_id} completed successfully.`,
+        detail: payload.result_preview ? cleanPreview(payload.result_preview) : `${payload.step_id} completed successfully.`,
       };
     case "task_complete":
       return {
@@ -388,7 +398,7 @@ function App() {
         lifecycle: "executing",
         steps: current.steps.map((step) =>
           step.id === payload.step_id
-            ? { ...step, status: "done", resultPreview: payload.result_preview }
+            ? { ...step, status: "done", resultPreview: cleanPreview(payload.result_preview) }
             : step,
         ),
       }));
@@ -451,8 +461,8 @@ function App() {
           </div>
           <h1>Run a multi-agent workflow and watch it think in public.</h1>
           <p>
-            This frontend talks to your FastAPI backend, submits a task, listens to SSE events,
-            and turns the execution trace into a calm, demo-ready experience.
+            Describe what you need, and our AI agents will plan, research, and write
+            a clear answer — step by step, right before your eyes.
           </p>
         </section>
 
