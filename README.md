@@ -214,7 +214,7 @@ Invoke-RestMethod -Uri ("http://127.0.0.1:8000" + $task.status_url)
 
 - Planner timeout or failure falls back to a default 2-step plan
 - LLM calls retry with exponential backoff
-- Provider order is `Groq -> Gemini -> Together`
+- Provider order is `Gemini -> Groq -> Together`
 - Together is intentionally last to preserve limited quota
 - Stale Redis messages can be reclaimed from pending entries
 - Critical step failures fail the task

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import logging
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette import EventSourceResponse
 
 from app.config.settings import get_settings
@@ -20,6 +22,19 @@ queue = RedisQueue(settings)
 orchestrator = TaskOrchestrator(settings, queue)
 
 app = FastAPI(title=settings.app_name)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "http://127.0.0.1:5174",
+        "http://localhost:5174",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
@@ -46,9 +61,17 @@ async def stream_task(task_id: str):
     async def event_generator():
         if settings.enable_event_replay:
             for envelope in await queue.load_past_events(task_id):
-                yield {"id": envelope.id, "event": envelope.event, "data": envelope.data}
+                yield {
+                    "id": envelope.id,
+                    "event": envelope.event,
+                    "data": json.dumps(envelope.data),
+                }
         async for envelope in queue.subscribe_events(task_id):
-            yield {"id": envelope.id, "event": envelope.event, "data": envelope.data}
+            yield {
+                "id": envelope.id,
+                "event": envelope.event,
+                "data": json.dumps(envelope.data),
+            }
 
     return EventSourceResponse(event_generator())
 

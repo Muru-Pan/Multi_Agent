@@ -105,8 +105,8 @@ class LLMRouter:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.providers: list[BaseProvider] = [
-            GroqProvider(settings.groq_api_key),
             GeminiProvider(settings.gemini_api_key),
+            GroqProvider(settings.groq_api_key),
             TogetherProvider(settings.together_api_key),
         ]
 
@@ -120,14 +120,26 @@ class LLMRouter:
                 except LLMProviderError as exc:
                     last_error = exc
                     retryable = exc.status_code is None or exc.status_code == 429 or exc.status_code >= 500
+                    detail = str(exc).strip() or "unknown error"
                     logger.warning(
-                        "provider attempt failed",
-                        extra={"provider": provider.name, "attempt": attempt, "status_code": exc.status_code},
+                        "LLM provider attempt failed: provider=%s attempt=%s status_code=%s retryable=%s detail=%s",
+                        provider.name,
+                        attempt,
+                        exc.status_code,
+                        retryable,
+                        detail,
                     )
                     if not retryable:
                         break
                     await asyncio.sleep((2 ** (attempt - 1)) + random.random())
         if fallback_text is not None:
+            if last_error is not None:
+                logger.warning(
+                    "All configured LLM providers failed; using local fallback response. last_provider=%s last_status=%s last_detail=%s",
+                    last_error.provider,
+                    last_error.status_code,
+                    str(last_error).strip() or "unknown error",
+                )
             return LLMResponse(provider="local-fallback", text=fallback_text)
         raise last_error or LLMProviderError("unknown", "no providers configured")
 
